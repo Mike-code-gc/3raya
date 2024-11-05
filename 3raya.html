@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tres en Raya</title>
+    <style>
+        /* Estilos mejorados */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        #difficultyButtons {
+            margin: 20px 0;
+        }
+        .difficulty-button {
+            background-color: #ffffff; /* Color de fondo blanco para botones de dificultad */
+            color: #000000; /* Texto negro */
+            border: 2px solid #3498db; /* Borde azul */
+            padding: 10px 20px;
+            font-size: 1.2em;
+            margin: 10px; /* Mayor separación entre botones */
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .difficulty-button:hover {
+            background-color: #ecf0f1; /* Color claro al pasar el ratón */
+            border-color: #2980b9; /* Color de borde más oscuro al pasar el ratón */
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(3, 120px);
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .cell {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            background-color: #ffffff; /* Color de fondo blanco para las celdas */
+            color: #000000; /* Texto negro para las letras */
+            cursor: pointer;
+            border-radius: 15px;
+            border: 2px solid #3498db; /* Borde azul para las celdas */
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        .cell:hover {
+            background-color: #ecf0f1; /* Color claro al pasar el ratón */
+            transform: scale(1.05);
+        }
+        .cell.disabled {
+            cursor: not-allowed;
+            background-color: #95a5a6; /* Color gris para celdas ocupadas */
+            color: #ecf0f1; /* Texto gris claro para celdas ocupadas */
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+        button {
+            background-color: #e74c3c;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            margin-top: 20px;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tres en Raya</h1>
+        <div id="difficultyButtons">
+            <button class="difficulty-button" onclick="setDifficulty('friend')">Contra un amigo</button>
+            <button class="difficulty-button" onclick="setDifficulty('easy')">Fácil (IA)</button>
+            <button class="difficulty-button" onclick="setDifficulty('medium')">Medio (IA)</button>
+            <button class="difficulty-button" onclick="setDifficulty('hard')">Difícil (IA)</button>
+            <button class="difficulty-button" onclick="setDifficulty('impossible')">Imposible (IA)</button>
+        </div>
+        <div id="board"></div>
+        <div id="result"></div>
+        <button onclick="restartGame()">Reiniciar Juego</button>
+    </div>
+
+    <script>
+        const board = document.getElementById("board");
+        const result = document.getElementById("result");
+        let cells;
+        let currentPlayer = "X";
+        let gameBoard;
+        let gameOver = false;
+        let currentDifficulty = 'friend'; // Dificultad inicial
+
+        // Inicializar el juego
+        function init() {
+            gameBoard = Array(9).fill("");
+            gameOver = false;
+            currentPlayer = "X";
+            result.textContent = "";
+            board.innerHTML = "";
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement("div");
+                cell.classList.add("cell");
+                cell.addEventListener("click", () => playerMove(i));
+                board.appendChild(cell);
+            }
+            cells = document.querySelectorAll(".cell");
+        }
+
+        // Reiniciar el juego
+        function restartGame() {
+            init();
+        }
+
+        // Establecer la dificultad y reiniciar el juego
+        function setDifficulty(difficulty) {
+            currentDifficulty = difficulty;
+            restartGame();
+        }
+
+        // Movimiento del jugador
+        function playerMove(index) {
+            if (!gameBoard[index] && !gameOver) {
+                gameBoard[index] = currentPlayer;
+                cells[index].textContent = currentPlayer;
+                cells[index].style.color = 'black'; // Cambiar color a negro
+                cells[index].classList.add("disabled");
+                if (checkWin()) {
+                    result.textContent = `${currentPlayer} gana!`;
+                    gameOver = true;
+                } else if (gameBoard.every(cell => cell !== "")) {
+                    result.textContent = "Es un empate!";
+                    gameOver = true;
+                } else {
+                    currentPlayer = currentPlayer === "X" ? "O" : "X";
+                    if (currentPlayer === "O" && currentDifficulty !== "friend") {
+                        setTimeout(aiMove, 500); // IA hace su movimiento
+                    }
+                }
+            }
+        }
+
+        // Movimiento de la IA
+        function aiMove() {
+            let index;
+
+            if (currentDifficulty === "easy") {
+                // Movimiento aleatorio
+                const availableMoves = gameBoard.map((val, idx) => val === "" ? idx : null).filter(val => val !== null);
+                index = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+            } else if (currentDifficulty === "medium") {
+                // Movimiento básico inteligente
+                index = findBestMove("O", false);
+            } else if (currentDifficulty === "hard" || currentDifficulty === "impossible") {
+                // Movimiento usando minimax (modo difícil e imposible)
+                index = findBestMove("O", true);
+            }
+
+            if (index !== undefined && !gameOver) {
+                gameBoard[index] = "O";
+                cells[index].textContent = "O";
+                cells[index].style.color = 'black'; // Cambiar color a negro
+                cells[index].classList.add("disabled");
+                if (checkWin()) {
+                    result.textContent = "O gana!";
+                    gameOver = true;
+                } else if (gameBoard.every(cell => cell !== "")) {
+                    result.textContent = "Es un empate!";
+                    gameOver = true;
+                } else {
+                    currentPlayer = "X";
+                }
+            }
+        }
+
+        // Comprobación de victoria
+        function checkWin() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Filas
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columnas
+                [0, 4, 8], [2, 4, 6]            // Diagonales
+            ];
+            return winPatterns.some(pattern =>
+                pattern.every(index => gameBoard[index] === currentPlayer)
+            );
+        }
+
+        // Algoritmo Minimax
+        function minimax(board, depth, isMaximizing) {
+            if (checkWinner(board, "O")) return 10 - depth;
+            if (checkWinner(board, "X")) return depth - 10;
+            if (board.every(cell => cell !== "")) return 0;
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < board.length; i++) {
+                    if (board[i] === "") {
+                        board[i] = "O";
+                        bestScore = Math.max(bestScore, minimax(board, depth + 1, false));
+                        board[i] = "";
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < board.length; i++) {
+                    if (board[i] === "") {
+                        board[i] = "X";
+                        bestScore = Math.min(bestScore, minimax(board, depth + 1, true));
+                        board[i] = "";
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        // Encontrar el mejor movimiento
+        function findBestMove(player, isHard) {
+            let bestScore = player === "O" ? -Infinity : Infinity;
+            let move;
+            for (let i = 0; i < gameBoard.length; i++) {
+                if (gameBoard[i] === "") {
+                    gameBoard[i] = player;
+                    let score = isHard ? minimax(gameBoard, 0, player === "X") : 0;
+                    gameBoard[i] = "";
+                    if (player === "O" && score > bestScore || player === "X" && score < bestScore) {
+                        bestScore = score;
+                        move = i;
+                    }
+                }
+            }
+            return move;
+        }
+
+        // Verificar si hay un ganador específico
+        function checkWinner(board, player) {
+            return [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ].some(pattern => pattern.every(index => board[index] === player));
+        }
+
+        // Iniciar el juego al cargar la página
+        init();
+    </script>
+</body>
+</html>
